@@ -1,0 +1,80 @@
+# Government Order (P) No. 125/2019/FIN
+
+## Basic Information
+- Date: September 6, 2019
+- Location: Thiruvananthapuram
+- S.R.O. No.: 644/2019
+- Department: Finance (Pension-B) Department
+- Type: Amendment to Kerala Service Rules
+
+## Legal Authority
+Exercising powers conferred by:
+- Sub-section (1) of section 2 of the Kerala Public Services Act, 1968 (19 of 1968)
+- Read with section 3 thereof
+
+## Amendment Details
+### Title and Commencement
+1. Short Title: Kerala Service (Ninth Amendment) Rules, 2019
+2. Effective Date: June 29, 2015
+
+### Amendments to Part III of Kerala Service Rules
+1. Rule 90:
+   - In clause(vi) of sub-rule (13): Changed "Form 2" to "Form 2B"
+
+2. Rule 110:
+   - Changed "Form 11" to "Form 2A"
+
+3. Rule 113:
+   - In sub-clause (ii) of clause (b): Changed "Form 2" to "Form 2B"
+
+4. Rule 115:
+   - In clause (b): Changed "Form 2" to "Form 2B"
+   - In clause (c):
+     - Sub-clause (i): Changed "Form 2" to "Form 2B"
+     - Sub-clause (ii): Changed "Form 2" to "Form 2B"
+
+5. Rule 117:
+   - In sub-rule (1): Changed "Form 2" to "Form 2B"
+
+6. APPENDIX X, PART A, Rule 4:
+   - Added: "If date of application for claim is within one year from the date of retirement, application for commutation of pension in Form 2A and 2B shall be furnished"
+
+7. LIST OF FORMS:
+   - Modified serial number 2:
+     - 2A: "Formal application for Pension and Commutation"
+     - 2B: "Formal application for Pension/Gratuity, Death-Cum Retirement Gratuity, Family Pension and Commutation of pension"
+   - Omitted serial number 11 and its entry
+
+8. Forms Section:
+   - Replaced Form 2 with new Form 2A (Formal Application for Pension/Commutation)
+   - Added new Form 2B (Comprehensive application form)
+   - Omitted Form 11
+
+### New Forms Details
+#### Form 2A Contents
+- Application details for pension and commutation
+- Personal information
+- Retirement details
+- Commutation preferences
+- Treasury details
+- Declarations
+- Required attachments
+
+#### Form 2B Contents
+- Comprehensive application for multiple benefits
+- Personal and service details
+- Pension calculation details
+- Treasury information
+- Family details
+- Declarations
+- Account enfacement details
+
+## Explanatory Note
+### Background
+- Reference: G.O. (P) No.259/2015/Fin. dated June 29, 2015
+- Decision to modify Form 2 and Form 11
+- Integration of forms due to similar data requirements
+- Modifications suggested by Principal Accountant General and public incorporated
+
+### Purpose
+To give statutory validity to the above Government Order through amendments to Part III of Kerala Service Rules

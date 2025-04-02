@@ -1,0 +1,48 @@
+# Government Order (P) No. 20/2019/FIN
+
+## Basic Information
+- Date: February 22, 2019
+- Location: Thiruvananthapuram
+- S.R.O. No.: 153/2019
+- Department: Finance (Pension-B) Department
+- Type: Amendment to Kerala Service Rules
+
+## Legal Authority
+Exercising powers conferred by:
+- Sub-section (1) of section 2 of the Kerala Public Services Act, 1968 (19 of 1968)
+- Read with section 3 thereof
+
+## Amendment Details
+### Title and Commencement
+1. Short Title: Kerala Service (Fourth Amendment) Rules, 2019
+2. Effective Dates:
+   - July 1, 2004: For sub-rule (1)
+   - July 1, 2014: For sub-rule (2)
+
+### Amendments to Part III, Rule 63
+1. In 'Note 10':
+   - Added new provisions regarding pension revision:
+     - For those eligible for full pension: If revised pension is less than 50% of minimum revised scale pay, 50% shall be ensured
+     - For those not eligible for full pension: Proportional amount based on qualifying service shall be ensured
+
+2. Added new 'Note 10A':
+   - Extended Note 10 benefits to employees with pre-revised pay in average emoluments due to LWA up to 4 months
+   - Exception: Those who availed LWA under Appendix XII A, XII B and XII C
+
+## Explanatory Note
+### Government Orders Referenced
+1. G.O. (P) No. 150/2015/Fin. dated April 24, 2015
+   - Ordered minimum pension guarantee for those with mixed pre-revised and revised scale
+   - Full pension eligible: Minimum 50% of revised scale minimum
+   - Partial pension eligible: Proportional amount based on service length
+
+2. G.O. (P) No. 278/2015/Fin. dated July 10, 2015
+   - Clarified effective date as July 1, 2004 (8th Pay Revision date)
+
+3. G.O. (P) No. 56/2018/Fin. dated April 3, 2018
+   - Extended benefits to cases with LWA up to 4 months
+   - Effective from July 1, 2014
+   - Excluded LWA under Appendix XII A, XII B and XII C
+
+### Purpose
+To give statutory validity to the above Government Orders through amendments to Part III of Kerala Service Rules
