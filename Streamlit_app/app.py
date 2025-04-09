@@ -4,18 +4,24 @@ import json
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from langchain_community.llms import Ollama
+import textwrap
 import torch
 import os
-
-# Set page configuration
-st.set_page_config(
-    page_title="Kerala Service Rules Chatbot",
-    page_icon="📚",
-    layout="wide"
-)
+import pandas as pd
+import time
+import plotly.express as px
+from datetime import datetime
+torch.cuda.set_device(6)
 
 class RAGChatbot:
-    def __init__(self, index_path, metadata_path, model_name='all-MiniLM-L6-v2'):
+    def __init__(self, index_path, metadata_path, model_name='all-MiniLM-L6-v2', gpu_id=None):
+        # Set GPU if specified
+        if gpu_id is not None and torch.cuda.is_available():
+            torch.cuda.set_device(gpu_id)
+            self.device = f"cuda:{gpu_id}"
+        else:
+            self.device = "cpu"
+            
         # Load FAISS index
         self.index = faiss.read_index(index_path)
         
@@ -25,24 +31,44 @@ class RAGChatbot:
             
         # Initialize embedding model
         self.embedder = SentenceTransformer(model_name)
+        self.embedder.to(self.device)
         
         # Initialize Ollama
         self.llm = Ollama(model="llama3.3:70b-instruct-q8_0")
         
         # Initialize conversation history
         self.conversation_history = []
+        
+        # Performance metrics
+        self.metrics = {
+            'embedding_time': [],
+            'retrieval_time': [],
+            'generation_time': [],
+            'total_time': []
+        }
 
     def get_relevant_context(self, query, k=6):
+        start_time = time.time()
+        
         # Create query embedding
-        query_embedding = self.embedder.encode([query])
+        embed_start = time.time()
+        query_embedding = self.embedder.encode([query], device=self.device)
+        embed_time = time.time() - embed_start
+        self.metrics['embedding_time'].append(embed_time)
         
         # Search in FAISS index
+        retrieval_start = time.time()
         distances, indices = self.index.search(query_embedding.astype('float32'), k)
+        retrieval_time = time.time() - retrieval_start
+        self.metrics['retrieval_time'].append(retrieval_time)
         
         # Get relevant texts and their metadata
         context = []
+        context_metadata = []
+        
         for idx in indices[0]:
             meta = self.metadata[idx]
+            context_metadata.append(meta)
 
             # Create a list of field-value pairs, excluding empty values
             fields = []
@@ -76,16 +102,19 @@ class RAGChatbot:
             # Join all non-empty fields with commas
             context_string = ', '.join([f for f in fields if f])
             context.append(context_string)
-        return context
+            
+        return context, context_metadata
     
     def generate_response(self, query, context):
+        generation_start = time.time()
+        
         # Create prompt with conversation history
         conversation_context = "\n".join([
             f"Human: {exchange['query']}\nAssistant: {exchange['response']}"
             for exchange in self.conversation_history[-3:]  # Include last 3 exchanges
         ])
         
-        prompt = f"""You are an expert assistant in Kerala Service Rules (KSR).  
+        prompt = f"""You are an expert assistant in Kerala Government Rules (like KSR, KFC, KTC, KSSR etc.).  
 Follow these guidelines for your responses:
 1. Use simple, everyday language that anyone can understand
 2. Organize your answer in clear paragraphs with one main idea per paragraph
@@ -109,123 +138,202 @@ Answer:"""
         # Generate response using Ollama
         response = self.llm.invoke(prompt)
         
+        generation_time = time.time() - generation_start
+        self.metrics['generation_time'].append(generation_time)
+        
         # Update conversation history
         self.conversation_history.append({
             'query': query,
             'response': response,
-            'context': context
+            'context': context,
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
+        
+        total_time = generation_time + self.metrics['embedding_time'][-1] + self.metrics['retrieval_time'][-1]
+        self.metrics['total_time'].append(total_time)
         
         return response
     
     def chat(self, query):
+        start_time = time.time()
+        
         # Handle conversation management commands
         if query.lower() == 'clear history':
             self.conversation_history = []
             return "Conversation history cleared."
             
-        if query.lower() == 'show history':
-            history = "\n\n".join([
-                f"Human: {exchange['query']}\nAssistant: {exchange['response']}"
-                for exchange in self.conversation_history
-            ])
-            return f"Conversation History:\n{history}"
-        
         # Normal query processing
-        context = self.get_relevant_context(query)
+        context, context_metadata = self.get_relevant_context(query)
         response = self.generate_response(query, context)
-        return response
+        
+        return response, context_metadata
+    
+    def get_performance_metrics(self):
+        metrics_df = pd.DataFrame({
+            'Embedding Time (s)': self.metrics['embedding_time'],
+            'Retrieval Time (s)': self.metrics['retrieval_time'],
+            'Generation Time (s)': self.metrics['generation_time'],
+            'Total Time (s)': self.metrics['total_time']
+        })
+        
+        if len(metrics_df) > 0:
+            avg_metrics = {
+                'Average Embedding Time': metrics_df['Embedding Time (s)'].mean(),
+                'Average Retrieval Time': metrics_df['Retrieval Time (s)'].mean(),
+                'Average Generation Time': metrics_df['Generation Time (s)'].mean(),
+                'Average Total Time': metrics_df['Total Time (s)'].mean()
+            }
+        else:
+            avg_metrics = {
+                'Average Embedding Time': 0,
+                'Average Retrieval Time': 0,
+                'Average Generation Time': 0,
+                'Average Total Time': 0
+            }
+            
+        return metrics_df, avg_metrics
 
-# Initialize session state variables if they don't exist
-if 'chatbot' not in st.session_state:
-    st.session_state.chatbot = None
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-if 'initialized' not in st.session_state:
-    st.session_state.initialized = False
-
-def initialize_chatbot():
-    """Initialize the chatbot with FAISS index and metadata."""
-    st.session_state.chatbot = RAGChatbot(
-        index_path=st.session_state.index_path,
-        metadata_path=st.session_state.metadata_path
-    )
-    st.session_state.initialized = True
-    st.session_state.messages = []
-
-# Sidebar for configuration
-with st.sidebar:
-    st.title("KSR Chatbot Setup")
-    
-    # Configuration inputs
-    st.header("Vector Database Paths")
-    index_path = st.text_input(
-        "FAISS Index Path", 
-        value="/workspace/rohith_llm/Extracted/Structured/Summary/Vector_DB/embeddings.faiss",
-        key="index_path"
-    )
-    metadata_path = st.text_input(
-        "Metadata JSON Path", 
-        value="/workspace/rohith_llm/Extracted/Structured/Summary/Vector_DB/metadata.json",
-        key="metadata_path"
-    )
-    
-    # GPU settings
-    st.header("GPU Settings")
-    use_gpu = st.checkbox("Use GPU", value=True)
-    if use_gpu:
-        gpu_id = st.number_input("GPU ID", min_value=0, max_value=8, value=6, step=1)
-        if st.button("Set GPU"):
-            torch.cuda.set_device(int(gpu_id))
-            st.success(f"Set GPU to device {gpu_id}")
-    
-    # Initialize button
-    if st.button("Initialize Chatbot"):
-        with st.spinner("Initializing chatbot..."):
-            initialize_chatbot()
-        st.success("Chatbot initialized successfully!")
-    
-    # Actions
-    st.header("Actions")
-    if st.button("Clear Chat History") and st.session_state.initialized:
+# Initialize session state
+def init_session_state():
+    if 'chatbot' not in st.session_state:
+        st.session_state.chatbot = None
+    if 'messages' not in st.session_state:
         st.session_state.messages = []
-        st.session_state.chatbot.conversation_history = []
-        st.success("Chat history cleared!")
+    if 'show_sources' not in st.session_state:
+        st.session_state.show_sources = False
+    if 'show_metrics' not in st.session_state:
+        st.session_state.show_metrics = False
 
-# Main chat interface
-st.title("Kerala Service Rules Chatbot")
-
-# Check if chatbot is initialized
-if not st.session_state.initialized:
-    st.warning("Please initialize the chatbot using the sidebar controls before starting the conversation.")
-else:
+def main():
+    st.set_page_config(
+        page_title="Kerala Government Rules Assistant",
+        page_icon="📚",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    init_session_state()
+    
+    # Sidebar for configuration
+    st.sidebar.title("Configuration")
+    
+    index_path = st.sidebar.text_input(
+        "FAISS Index Path", 
+        value="/workspace/Extracted/Structured/Summary/Vector_DB/embeddings.faiss"
+    )
+    
+    metadata_path = st.sidebar.text_input(
+        "Metadata Path", 
+        value="/workspace/Extracted/Structured/Summary/Vector_DB/metadata.json"
+    )
+    
+    embedding_model = st.sidebar.selectbox(
+        "Embedding Model",
+        options=["all-MiniLM-L6-v2", "all-mpnet-base-v2", "multi-qa-MiniLM-L6-cos-v1"],
+        index=0
+    )
+    
+    gpu_options = ["CPU"] + [f"GPU {i}" for i in range(torch.cuda.device_count())]
+    gpu_selection = st.sidebar.selectbox("Device", options=gpu_options, index=0)
+    gpu_id = None if gpu_selection == "CPU" else int(gpu_selection.split(" ")[1])
+    
+    k_value = st.sidebar.slider("Number of documents to retrieve", min_value=1, max_value=20, value=6)
+    
+    if st.sidebar.button("Initialize Chatbot"):
+        with st.spinner("Initializing chatbot..."):
+            st.session_state.chatbot = RAGChatbot(
+                index_path=index_path,
+                metadata_path=metadata_path,
+                model_name=embedding_model,
+                gpu_id=gpu_id
+            )
+        st.sidebar.success("Chatbot initialized!")
+    
+    # Toggle switches
+    st.sidebar.subheader("Display Options")
+    st.session_state.show_sources = st.sidebar.checkbox("Show Sources", value=st.session_state.show_sources)
+    st.session_state.show_metrics = st.sidebar.checkbox("Show Performance Metrics", value=st.session_state.show_metrics)
+    
+    # Clear conversation
+    if st.sidebar.button("Clear Conversation"):
+        if st.session_state.chatbot:
+            st.session_state.chatbot.conversation_history = []
+        st.session_state.messages = []
+    
+    # Main content
+    st.title("Kerala Government Rules Assistant")
+    
     # Display chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-
-    # Chat input
-    if prompt := st.chat_input("Ask a question about Kerala Service Rules..."):
+            
+            # Display sources if enabled and available
+            if message.get("sources") and st.session_state.show_sources and message["role"] == "assistant":
+                with st.expander("View Sources"):
+                    source_df = pd.DataFrame(message["sources"])
+                    columns_to_display = [col for col in source_df.columns if col != 'Text' and not source_df[col].isna().all()]
+                    st.dataframe(source_df[columns_to_display])
+    
+    # Performance metrics section
+    if st.session_state.show_metrics and st.session_state.chatbot:
+        metrics_df, avg_metrics = st.session_state.chatbot.get_performance_metrics()
+        
+        if len(metrics_df) > 0:
+            st.subheader("Performance Metrics")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.dataframe(metrics_df.tail())
+                
+            with col2:
+                for metric_name, value in avg_metrics.items():
+                    st.metric(metric_name, f"{value:.4f}s")
+                
+            # Create performance chart
+            if len(metrics_df) > 1:
+                chart_data = metrics_df.copy()
+                chart_data['Query Number'] = range(1, len(chart_data) + 1)
+                fig = px.line(
+                    chart_data,
+                    x='Query Number',
+                    y=['Embedding Time (s)', 'Retrieval Time (s)', 'Generation Time (s)', 'Total Time (s)'],
+                    title='Response Time Breakdown'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+    
+    # User input
+    if prompt := st.chat_input("Ask about Kerala Government Rules..."):
+        if not st.session_state.chatbot:
+            st.error("Please initialize the chatbot first!")
+            return
+            
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
         # Display user message
         with st.chat_message("user"):
             st.markdown(prompt)
-        
-        # Generate response
+            
+        # Generate and display assistant response
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                response = st.session_state.chatbot.chat(prompt)
+                response, sources = st.session_state.chatbot.chat(prompt)
                 st.markdown(response)
+                
+                # Store sources for display
+                if st.session_state.show_sources:
+                    with st.expander("View Sources"):
+                        source_df = pd.DataFrame(sources)
+                        columns_to_display = [col for col in source_df.columns if col != 'Text' and not source_df[col].isna().all()]
+                        st.dataframe(source_df[columns_to_display])
         
         # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({
+            "role": "assistant", 
+            "content": response,
+            "sources": sources
+        })
 
-# Documentation in the footer
-st.markdown("---")
-st.markdown("""
-**Commands:**
-- Type 'clear history' to reset the conversation
-- Type 'show history' to view previous exchanges
-""")
+if __name__ == "__main__":
+    main()
